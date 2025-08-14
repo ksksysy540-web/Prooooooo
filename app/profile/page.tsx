@@ -1,14 +1,13 @@
-"use client"
-
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { User, ShoppingBag, MessageCircle, Heart, Gift, ExternalLink, Copy, QrCode } from "lucide-react"
+import { User, ShoppingBag, MessageCircle, Heart, Gift, ExternalLink, QrCode } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { CopyButton } from "@/components/copy-button"
 
 // Generate random UID
 function generateUID() {
@@ -179,14 +178,7 @@ export default async function ProfilePage() {
                       <code className="bg-white p-2 rounded border text-xs break-all flex-1">
                         TFKGm4YPEJHw733GRGz3mTAVjhDPQjmcpt
                       </code>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigator.clipboard.writeText("TFKGm4YPEJHw733GRGz3mTAVjhDPQjmcpt")}
-                        className="hover:scale-105 transition-all duration-200"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+                      <CopyButton text="TFKGm4YPEJHw733GRGz3mTAVjhDPQjmcpt" />
                     </div>
                   </div>
                   <Button className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 animate-pulse hover:animate-none transition-all duration-300">
