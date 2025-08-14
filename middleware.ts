@@ -30,6 +30,14 @@ export async function middleware(request: NextRequest) {
       const redirectUrl = new URL("/auth/login", request.url)
       return NextResponse.redirect(redirectUrl)
     }
+
+    const userEmail = session.user?.email
+    const allowedEmail = "akk116636@gmail.com"
+
+    if (userEmail !== allowedEmail) {
+      // Redirect unauthorized users to homepage
+      return NextResponse.redirect(new URL("/", request.url))
+    }
   }
 
   return res
