@@ -8,9 +8,14 @@ import { ScrollButton } from "@/components/scroll-button"
 import { AnimatedLogo } from "@/components/animated-logo"
 import { HeroSlider } from "@/components/hero-slider"
 import { trackProductClick } from "@/lib/actions"
+import { UserProfileDropdown } from "@/components/user-profile-dropdown"
 
 export default async function Home() {
   const supabase = createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Fetch products from database
   const { data: products, error } = await supabase
@@ -29,9 +34,13 @@ export default async function Home() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <AnimatedLogo />
           <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/auth/login">Sign In</Link>
-            </Button>
+            {user ? (
+              <UserProfileDropdown user={user} />
+            ) : (
+              <Button variant="ghost" asChild>
+                <Link href="/auth/login">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
