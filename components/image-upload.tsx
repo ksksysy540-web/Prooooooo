@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,122 +11,97 @@ import Image from "next/image"
 import { uploadImage } from "@/lib/actions"
 
 interface ImageUploadProps {
-  currentImageUrls?: string[]
-  onImagesChange: (urls: string[]) => void
+  currentImageUrl?: string
+  onImageChange: (url: string) => void
 }
 
-export default function ImageUpload({ currentImageUrls = [], onImagesChange }: ImageUploadProps) {
+export default function ImageUpload({ currentImageUrl, onImageChange }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const [previewUrls, setPreviewUrls] = useState<string[]>(currentImageUrls)
+  const [previewUrl, setPreviewUrl] = useState(currentImageUrl || "")
   const [error, setError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [urlInput, setUrlInput] = useState("")
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
+    const file = event.target.files?.[0]
+    if (!file) return
 
     setError("")
     setIsUploading(true)
 
+    // Create preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // Upload file
+    const formData = new FormData()
+    formData.append("file", file)
+
     try {
-      const newUrls = [...previewUrls]
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        
-        // Create preview
-        const previewUrl = URL.createObjectURL(file)
-        newUrls.push(previewUrl)
-        setPreviewUrls([...newUrls])
-
-        // Upload file
-        const formData = new FormData()
-        formData.append("file", file)
-
-        const result = await uploadImage(formData)
-        if (result.error) {
-          throw new Error(result.error)
-        } else if (result.url) {
-          // Replace the preview URL with the actual uploaded URL
-          const index = newUrls.indexOf(previewUrl)
-          if (index !== -1) {
-            newUrls[index] = result.url
-            setPreviewUrls([...newUrls])
-          }
-        }
+      const result = await uploadImage(formData)
+      if (result.error) {
+        setError(result.error)
+        setPreviewUrl(currentImageUrl || "")
+      } else if (result.url) {
+        setPreviewUrl(result.url)
+        onImageChange(result.url)
       }
-
-      onImagesChange(newUrls.filter(url => !url.startsWith('blob:'))) // Remove any blob URLs
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to upload images")
+      setError("Failed to upload image")
+      setPreviewUrl(currentImageUrl || "")
     } finally {
       setIsUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
     }
   }
 
-  const handleRemoveImage = (index: number) => {
-    const newUrls = [...previewUrls]
-    newUrls.splice(index, 1)
-    setPreviewUrls(newUrls)
-    onImagesChange(newUrls)
+  const handleRemoveImage = () => {
+    setPreviewUrl("")
+    onImageChange("")
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
-  const handleAddUrl = () => {
-    if (urlInput.trim() && !previewUrls.includes(urlInput)) {
-      const newUrls = [...previewUrls, urlInput]
-      setPreviewUrls(newUrls)
-      onImagesChange(newUrls)
-      setUrlInput("")
-      setError("")
-    }
+  const handleUrlChange = (url: string) => {
+    setPreviewUrl(url)
+    onImageChange(url)
+    setError("")
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="block text-sm font-medium">Product Images</label>
-        <p className="text-xs text-muted-foreground">Upload images or enter URLs</p>
+        <label className="block text-sm font-medium">Product Image</label>
+        <p className="text-xs text-muted-foreground">Upload an image or enter a URL</p>
       </div>
 
-      {/* Images Preview */}
-      {previewUrls.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {previewUrls.map((url, index) => (
-            <Card key={index} className="relative">
-              <CardContent className="p-4">
-                <div className="relative aspect-square">
-                  <Image
-                    src={url}
-                    alt={`Product preview ${index + 1}`}
-                    fill
-                    className="object-cover rounded-lg"
-                    onError={() => {
-                      // Handle broken images
-                      const newUrls = [...previewUrls]
-                      newUrls.splice(index, 1)
-                      setPreviewUrls(newUrls)
-                      onImagesChange(newUrls)
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => handleRemoveImage(index)}
-                    disabled={isUploading}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Image Preview */}
+      {previewUrl && (
+        <Card className="relative">
+          <CardContent className="p-4">
+            <div className="relative">
+              <Image
+                src={previewUrl || "/placeholder.svg"}
+                alt="Product preview"
+                width={300}
+                height={200}
+                className="w-full h-48 object-cover rounded-lg"
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={handleRemoveImage}
+                disabled={isUploading}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Upload Button */}
@@ -145,38 +121,25 @@ export default function ImageUpload({ currentImageUrls = [], onImagesChange }: I
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              Upload Images
+              Upload Image
             </>
           )}
         </Button>
-        <input 
-          ref={fileInputRef} 
-          type="file" 
-          accept="image/*" 
-          onChange={handleFileSelect} 
-          className="hidden" 
-          multiple 
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
       </div>
 
       {/* URL Input */}
       <div className="space-y-2">
-        <div className="flex gap-2">
-          <Input
-            type="url"
-            placeholder="https://example.com/image.jpg"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            className="flex-1"
-          />
-          <Button
-            type="button"
-            onClick={handleAddUrl}
-            disabled={!urlInput.trim()}
-          >
-            Add URL
-          </Button>
-        </div>
+        <label htmlFor="image_url_input" className="block text-sm font-medium">
+          Or enter image URL
+        </label>
+        <Input
+          id="image_url_input"
+          type="url"
+          placeholder="https://example.com/image.jpg"
+          value={previewUrl}
+          onChange={(e) => handleUrlChange(e.target.value)}
+        />
       </div>
 
       {/* Error Message */}
@@ -186,10 +149,8 @@ export default function ImageUpload({ currentImageUrls = [], onImagesChange }: I
         </div>
       )}
 
-      {/* Hidden inputs for form submission */}
-      {previewUrls.map((url, index) => (
-        <input key={index} type="hidden" name="image_urls" value={url} />
-      ))}
+      {/* Hidden input for form submission */}
+      <input type="hidden" name="image_url" value={previewUrl} />
     </div>
   )
 }
