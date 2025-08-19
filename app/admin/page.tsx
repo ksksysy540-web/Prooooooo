@@ -193,7 +193,7 @@ export default async function AdminDashboard() {
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="sm" className="flex-1 bg-transparent">
-                      <Link href={`/product/${product.id}`} target="_blank">
+                      <Link href={`/product/${product.slug || product.id}`} target="_blank">
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Link>

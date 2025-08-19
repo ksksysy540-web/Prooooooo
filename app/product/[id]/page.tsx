@@ -16,11 +16,21 @@ interface ProductPageProps {
 export default async function ProductPage({ params }: ProductPageProps) {
   const supabase = createClient()
 
-  const { data: product, error } = await supabase
+  // Resolve by UUID or slug
+  let { data: product, error } = await supabase
     .from("products")
     .select("*, product_images:product_images(image_url, sort_order)")
     .eq("id", params.id)
     .single()
+  if (error) {
+    const { data: bySlug } = await supabase
+      .from("products")
+      .select("*, product_images:product_images(image_url, sort_order)")
+      .eq("slug", params.id)
+      .single()
+    product = bySlug as any
+    error = null as any
+  }
 
   if (error || !product) {
     notFound()

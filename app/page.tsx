@@ -261,7 +261,7 @@ export default async function Home({
                       className="w-full bg-accent hover:bg-accent/90 text-accent-foreground transform hover:scale-105 transition-all duration-200"
                       asChild
                     >
-                      <Link href={`/product/${product.id}`}>
+                      <Link href={`/product/${product.slug || product.id}`}>
                         <ShoppingCart className="w-4 h-4 mr-2" />
                         View Details
                       </Link>
