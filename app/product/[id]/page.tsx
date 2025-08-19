@@ -6,6 +6,7 @@ import Image from "next/image"
 import ProductImageCarousel from "@/components/product-image-carousel"
 import { Star, ShoppingCart, Clock, Shield, Truck, RefreshCw, ArrowLeft } from "lucide-react"
 import { notFound } from "next/navigation"
+import ShareButton from "@/components/share-button"
 
 interface ProductPageProps {
   params: {
@@ -93,6 +94,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     ))}
                     <span className="ml-2 text-sm text-muted-foreground">(4.8/5 from 2,847 reviews)</span>
                   </div>
+                  <ShareButton url={`${process.env.NEXT_PUBLIC_SITE_URL || ""}/product/${product.slug || product.id}`} />
                 </div>
                 <p className="text-lg text-muted-foreground leading-relaxed">{product.description}</p>
               </div>

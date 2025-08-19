@@ -10,6 +10,7 @@ import { AnimatedLogo } from "@/components/animated-logo"
 import { HeroSlider } from "@/components/hero-slider"
 import { trackProductClick } from "@/lib/actions"
 import { UserProfileDropdown } from "@/components/user-profile-dropdown"
+import ShareButton from "@/components/share-button"
 
 export default async function Home({
   searchParams,
@@ -131,6 +132,16 @@ export default async function Home({
                     <Filter className="w-4 h-4 mr-2" /> Home & Garden
                   </Link>
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${selectedCategory === "health-and-fitness" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=health-and-fitness">
+                    <Filter className="w-4 h-4 mr-2" /> HEALTH AND FITNESS
+                  </Link>
+                </Button>
               </div>
 
               {/* Sort Dropdown */}
@@ -158,6 +169,7 @@ export default async function Home({
                     fashion: "Fashion",
                     beauty: "Beauty",
                     "home-garden": "Home & Garden",
+                    "health-and-fitness": "HEALTH AND FITNESS",
                   }
                   const key = selectedCategory || "all"
                   return map[key] || "All Products"
@@ -257,15 +269,18 @@ export default async function Home({
                       await trackProductClick(product.id)
                     }}
                   >
-                    <Button
-                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground transform hover:scale-105 transition-all duration-200"
-                      asChild
-                    >
-                      <Link href={`/product/${product.slug || product.id}`}>
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        View Details
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground transform hover:scale-105 transition-all duration-200"
+                        asChild
+                      >
+                        <Link href={`/product/${product.slug || product.id}`}>
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          View Details
+                        </Link>
+                      </Button>
+                      <ShareButton url={`${process.env.NEXT_PUBLIC_SITE_URL || ""}/product/${product.slug || product.id}`} />
+                    </div>
                   </form>
                 </div>
               </div>
