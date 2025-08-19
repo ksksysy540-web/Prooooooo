@@ -133,6 +133,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   const price = formData.get("price")
   const discount = formData.get("discount")
   const badge = formData.get("badge")
+  const category = formData.get("category")
   const affiliateLink = formData.get("affiliate_link")
   const imageUrl = formData.get("image_url")
 
@@ -152,6 +153,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       badge: badge?.toString() || null,
       affiliate_link: affiliateLink?.toString() || "",
       image_url: imageUrl?.toString() || "",
+      category: category?.toString() || null,
       click_count: 0,
     })
 
@@ -179,6 +181,7 @@ export async function updateProduct(prevState: any, formData: FormData) {
   const price = formData.get("price")
   const discount = formData.get("discount")
   const badge = formData.get("badge")
+  const category = formData.get("category")
   const affiliateLink = formData.get("affiliate_link")
   const imageUrl = formData.get("image_url")
 
@@ -200,6 +203,7 @@ export async function updateProduct(prevState: any, formData: FormData) {
         badge: badge?.toString() || null,
         affiliate_link: affiliateLink?.toString() || "",
         image_url: imageUrl?.toString() || "",
+        category: category?.toString() || null,
       })
       .eq("id", id.toString())
 

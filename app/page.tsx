@@ -10,18 +10,27 @@ import { HeroSlider } from "@/components/hero-slider"
 import { trackProductClick } from "@/lib/actions"
 import { UserProfileDropdown } from "@/components/user-profile-dropdown"
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
   const supabase = createClient()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch products from database
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false })
+  // Selected category from URL (e.g., ?category=electronics)
+  const selectedCategory =
+    typeof searchParams?.["category"] === "string" ? (searchParams?.["category"] as string) : undefined
+
+  // Fetch products from database with optional category filter
+  let productsQuery = supabase.from("products").select("*").order("created_at", { ascending: false })
+  if (selectedCategory && selectedCategory !== "all") {
+    productsQuery = productsQuery.eq("category", selectedCategory)
+  }
+  const { data: products, error } = await productsQuery
 
   if (error) {
     console.error("Error fetching products:", error)
@@ -70,24 +79,53 @@ export default async function Home() {
 
               {/* Filter Buttons */}
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">
-                  All Products
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${!selectedCategory || selectedCategory === "all" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=all">All Products</Link>
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Electronics
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${selectedCategory === "electronics" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=electronics">
+                    <Filter className="w-4 h-4 mr-2" /> Electronics
+                  </Link>
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Fashion
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${selectedCategory === "fashion" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=fashion">
+                    <Filter className="w-4 h-4 mr-2" /> Fashion
+                  </Link>
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Beauty
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${selectedCategory === "beauty" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=beauty">
+                    <Filter className="w-4 h-4 mr-2" /> Beauty
+                  </Link>
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Home & Garden
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`${selectedCategory === "home-garden" ? "bg-primary text-primary-foreground" : ""}`}
+                  asChild
+                >
+                  <Link href="/?category=home-garden">
+                    <Filter className="w-4 h-4 mr-2" /> Home & Garden
+                  </Link>
                 </Button>
               </div>
 
@@ -109,7 +147,17 @@ export default async function Home() {
             <div className="flex items-center gap-2 mt-4 pt-4 border-t">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               <Badge variant="secondary" className="flex items-center gap-1">
-                All Products
+                {(() => {
+                  const map: Record<string, string> = {
+                    all: "All Products",
+                    electronics: "Electronics",
+                    fashion: "Fashion",
+                    beauty: "Beauty",
+                    "home-garden": "Home & Garden",
+                  }
+                  const key = selectedCategory || "all"
+                  return map[key] || "All Products"
+                })()}
                 <X className="w-3 h-3 cursor-pointer" />
               </Badge>
             </div>

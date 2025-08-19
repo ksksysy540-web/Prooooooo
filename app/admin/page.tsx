@@ -162,6 +162,11 @@ export default async function AdminDashboard() {
                   <CardDescription className="line-clamp-2">{product.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {product.category && (
+                    <div className="mb-2">
+                      <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                    </div>
+                  )}
                   {/* Added click tracking stats */}
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2">
