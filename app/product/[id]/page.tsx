@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import Image from "next/image"
+import ProductImageCarousel from "@/components/product-image-carousel"
 import { Star, ShoppingCart, Clock, Shield, Truck, RefreshCw, ArrowLeft } from "lucide-react"
 import { notFound } from "next/navigation"
 
@@ -15,7 +16,11 @@ interface ProductPageProps {
 export default async function ProductPage({ params }: ProductPageProps) {
   const supabase = createClient()
 
-  const { data: product, error } = await supabase.from("products").select("*").eq("id", params.id).single()
+  const { data: product, error } = await supabase
+    .from("products")
+    .select("*, product_images:product_images(image_url, sort_order)")
+    .eq("id", params.id)
+    .single()
 
   if (error || !product) {
     notFound()
@@ -45,12 +50,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
             {/* Product Image */}
             <div className="space-y-4">
               <div className="relative">
-                <Image
-                  src={product.image_url || "/placeholder.svg?height=500&width=500"}
-                  alt={product.product_name}
+                <ProductImageCarousel
+                  images={[
+                    ...(product.product_images?.sort?.
+                      ? product.product_images.sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      : (product.product_images || [])),
+                  ].map((p: any) => p.image_url).filter(Boolean).length > 0
+                    ? (product.product_images || [])
+                        .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                        .map((p: any) => p.image_url)
+                    : [product.image_url]}
                   width={500}
                   height={500}
-                  className="w-full rounded-lg shadow-lg"
+                  intervalMs={3500}
                 />
                 <Badge className="absolute top-4 right-4 bg-accent text-accent-foreground">
                   <Clock className="w-4 h-4 mr-1" />

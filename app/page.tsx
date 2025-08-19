@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import Image from "next/image"
+import ProductImageCarousel from "@/components/product-image-carousel"
 import { Star, ShoppingCart, Search, Filter, X, Zap, Clock, TrendingUp } from "lucide-react"
 import { ScrollButton } from "@/components/scroll-button"
 import { AnimatedLogo } from "@/components/animated-logo"
@@ -26,7 +27,10 @@ export default async function Home({
     typeof searchParams?.["category"] === "string" ? (searchParams?.["category"] as string) : undefined
 
   // Fetch products from database with optional category filter
-  let productsQuery = supabase.from("products").select("*").order("created_at", { ascending: false })
+  let productsQuery = supabase
+    .from("products")
+    .select("*, product_images:product_images(image_url, sort_order)")
+    .order("created_at", { ascending: false })
   if (selectedCategory && selectedCategory !== "all") {
     productsQuery = productsQuery.eq("category", selectedCategory)
   }
@@ -170,12 +174,18 @@ export default async function Home({
                 className="bg-card rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 <div className="relative">
-                  <Image
-                    src={product.image_url || "/placeholder.svg?height=250&width=250"}
-                    alt={product.product_name}
+                  <ProductImageCarousel
+                    images={[
+                      ...(product.product_images?.sort?.
+                        ? product.product_images.sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                        : (product.product_images || [])),
+                    ].map((p: any) => p.image_url).filter(Boolean).length > 0
+                      ? (product.product_images || [])
+                          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                          .map((p: any) => p.image_url)
+                      : [product.image_url]}
                     width={250}
                     height={250}
-                    className="w-full h-48 object-cover"
                   />
                   <div className="absolute top-2 right-2 flex flex-col gap-1">
                     {product.badge && (
