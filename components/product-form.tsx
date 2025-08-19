@@ -13,6 +13,14 @@ import { useEffect, useState } from "react"
 import { createProduct, updateProduct } from "@/lib/actions"
 import ImageUpload from "./image-upload"
 
+const defaultCategories: Array<{ id: string; name: string; slug: string }> = [
+  { id: "all", name: "All", slug: "all" },
+  { id: "electronics", name: "Electronics", slug: "electronics" },
+  { id: "fashion", name: "Fashion", slug: "fashion" },
+  { id: "beauty", name: "Beauty", slug: "beauty" },
+  { id: "home-garden", name: "Home & Garden", slug: "home-garden" },
+]
+
 interface Product {
   id: string
   product_name: string
@@ -57,7 +65,7 @@ export default function ProductForm({ product }: ProductFormProps) {
   const [imageUrl, setImageUrl] = useState(product?.image_url || "")
   const [selectedBadge, setSelectedBadge] = useState(product?.badge || "No Badge")
   const [selectedCategory, setSelectedCategory] = useState(product?.category || "")
-  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([])
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>(defaultCategories)
 
   useEffect(() => {
     if (state?.success) {
@@ -72,7 +80,9 @@ export default function ProductForm({ product }: ProductFormProps) {
         const res = await fetch("/api/categories", { cache: "no-store" })
         if (!res.ok) return
         const data = await res.json()
-        if (!ignore) setCategories(data.categories || [])
+        if (!ignore && Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories)
+        }
       } catch {}
     }
     loadCategories()
