@@ -6,9 +6,10 @@ import { useState } from "react"
 
 interface CopyButtonProps {
   text: string
+  label?: string
 }
 
-export function CopyButton({ text }: CopyButtonProps) {
+export function CopyButton({ text, label }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -29,6 +30,7 @@ export function CopyButton({ text }: CopyButtonProps) {
       className="hover:scale-105 transition-all duration-200 bg-transparent"
     >
       {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+      {label ? <span className="ml-1 text-xs">{copied ? "Copied!" : label}</span> : null}
     </Button>
   )
 }

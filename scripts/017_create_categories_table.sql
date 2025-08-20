@@ -27,5 +27,6 @@ VALUES
   ('Electronics', 'electronics'),
   ('Fashion', 'fashion'),
   ('Beauty', 'beauty'),
-  ('Home & Garden', 'home-garden')
+  ('Home & Garden', 'home-garden'),
+  ('HEALTH AND FITNESS', 'health-and-fitness')
 ON CONFLICT (slug) DO NOTHING;

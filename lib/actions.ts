@@ -5,6 +5,15 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
 export async function signIn(prevState: any, formData: FormData) {
   if (!formData) {
     return { error: "Form data is missing" }
@@ -86,23 +95,19 @@ export async function uploadImage(formData: FormData) {
     return { error: "No file provided" }
   }
 
-  // Validate file type
   if (!file.type.startsWith("image/")) {
     return { error: "File must be an image" }
   }
 
-  // Validate file size (5MB limit)
   if (file.size > 5 * 1024 * 1024) {
     return { error: "File size must be less than 5MB" }
   }
 
   try {
-    // Generate unique filename
     const fileExt = file.name.split(".").pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage.from("product-images").upload(fileName, file, {
+    const { error } = await supabase.storage.from("product-images").upload(fileName, file, {
       cacheControl: "3600",
       upsert: false,
     })
@@ -111,7 +116,6 @@ export async function uploadImage(formData: FormData) {
       return { error: error.message }
     }
 
-    // Get public URL
     const {
       data: { publicUrl },
     } = supabase.storage.from("product-images").getPublicUrl(fileName)
@@ -136,6 +140,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   const category = formData.get("category")
   const affiliateLink = formData.get("affiliate_link")
   const imageUrl = formData.get("image_url")
+  const imageUrls = formData.getAll("image_urls[]").map((v) => v.toString()).filter(Boolean)
 
   if (!productName || !price) {
     return { error: "Product name and price are required" }
@@ -145,20 +150,57 @@ export async function createProduct(prevState: any, formData: FormData) {
   const supabase = createServerActionClient({ cookies: () => cookieStore })
 
   try {
-    const { error } = await supabase.from("products").insert({
-      product_name: productName.toString(),
-      description: description?.toString() || "",
-      price: Number.parseFloat(price.toString()),
-      discount: discount ? Number.parseFloat(discount.toString()) : 0,
-      badge: badge?.toString() || null,
-      affiliate_link: affiliateLink?.toString() || "",
-      image_url: imageUrl?.toString() || "",
-      category: category?.toString() || null,
-      click_count: 0,
-    })
+    // Generate unique slug
+    let baseSlug = slugify(productName.toString())
+    if (!baseSlug) baseSlug = Math.random().toString(36).slice(2, 8)
+    let candidate = baseSlug
+    let counter = 1
+    // Ensure uniqueness
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data: existing, error: checkError } = await supabase
+        .from("products")
+        .select("id")
+        .eq("slug", candidate)
+        .limit(1)
+      if (checkError) break
+      if (!existing || existing.length === 0) break
+      counter += 1
+      candidate = `${baseSlug}-${counter}`
+    }
+
+    const primaryImageUrl = imageUrl?.toString() || imageUrls[0] || ""
+    const { data: inserted, error } = await supabase
+      .from("products")
+      .insert({
+        product_name: productName.toString(),
+        description: description?.toString() || "",
+        price: Number.parseFloat(price.toString()),
+        discount: discount ? Number.parseFloat(discount.toString()) : 0,
+        badge: badge?.toString() || null,
+        affiliate_link: affiliateLink?.toString() || "",
+        image_url: primaryImageUrl,
+        category: category?.toString() || null,
+        click_count: 0,
+        slug: candidate,
+      })
+      .select("id")
+      .single()
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (inserted?.id && imageUrls.length > 0) {
+      const imagesPayload = imageUrls.map((url, index) => ({
+        product_id: inserted.id,
+        image_url: url,
+        sort_order: index,
+      }))
+      const { error: imagesError } = await supabase.from("product_images").insert(imagesPayload)
+      if (imagesError) {
+        console.error("Failed to save product images:", imagesError)
+      }
     }
 
     revalidatePath("/")
@@ -184,6 +226,7 @@ export async function updateProduct(prevState: any, formData: FormData) {
   const category = formData.get("category")
   const affiliateLink = formData.get("affiliate_link")
   const imageUrl = formData.get("image_url")
+  const imageUrls = formData.getAll("image_urls[]").map((v) => v.toString()).filter(Boolean)
 
   if (!id || !productName || !price) {
     return { error: "ID, product name and price are required" }
@@ -209,6 +252,18 @@ export async function updateProduct(prevState: any, formData: FormData) {
 
     if (error) {
       return { error: error.message }
+    }
+
+    if (imageUrls.length > 0) {
+      const imagesPayload = imageUrls.map((url, index) => ({
+        product_id: id.toString(),
+        image_url: url,
+        sort_order: index,
+      }))
+      const { error: imagesError } = await supabase.from("product_images").insert(imagesPayload)
+      if (imagesError) {
+        console.error("Failed to save additional images:", imagesError)
+      }
     }
 
     revalidatePath("/")
@@ -244,7 +299,6 @@ export async function setupDatabase() {
   const supabase = createServerActionClient({ cookies: () => cookieStore })
 
   try {
-    // Create products table using raw SQL
     const { error: tableError } = await supabase.rpc("exec_sql", {
       sql: `
         CREATE TABLE IF NOT EXISTS products (
@@ -257,21 +311,18 @@ export async function setupDatabase() {
           click_count INTEGER DEFAULT 0,
           badge TEXT,
           discount NUMERIC,
+          slug TEXT UNIQUE,
           created_at TIMESTAMP DEFAULT NOW()
         );
         
-        -- Enable RLS
         ALTER TABLE products ENABLE ROW LEVEL SECURITY;
         
-        -- Allow public read access
         CREATE POLICY IF NOT EXISTS "Allow public read access" ON products
           FOR SELECT USING (true);
         
-        -- Allow authenticated users to insert/update/delete
         CREATE POLICY IF NOT EXISTS "Allow authenticated users full access" ON products
           FOR ALL USING (auth.role() = 'authenticated');
         
-        -- Create click_tracking table
         CREATE TABLE IF NOT EXISTS click_tracking (
           id SERIAL PRIMARY KEY,
           product_id UUID REFERENCES products(id),
@@ -282,16 +333,12 @@ export async function setupDatabase() {
 
     if (tableError) {
       console.error("Error creating table:", tableError)
-      // Try alternative approach - direct table creation
       const { error: directError } = await supabase.from("products").select("id").limit(1)
-
       if (directError && directError.code === "PGRST116") {
-        // Table doesn't exist, we need to create it manually
         throw new Error("Products table needs to be created manually in Supabase dashboard")
       }
     }
 
-    // Insert sample products
     const sampleProducts = [
       {
         product_name: "Premium Wireless Headphones",
@@ -328,12 +375,10 @@ export async function setupDatabase() {
       },
     ]
 
-    // Check if products already exist
     const { data: existingProducts } = await supabase.from("products").select("id").limit(1)
 
     if (!existingProducts || existingProducts.length === 0) {
       const { error: insertError } = await supabase.from("products").insert(sampleProducts)
-
       if (insertError) {
         console.error("Error inserting products:", insertError)
         return { error: insertError.message }
@@ -353,7 +398,6 @@ export async function trackProductClick(productId: string) {
   const supabase = createServerActionClient({ cookies: () => cookieStore })
 
   try {
-    // Insert click tracking record
     const { error: clickError } = await supabase.from("click_tracking").insert({
       product_id: productId,
       clicked_at: new Date().toISOString(),
@@ -363,7 +407,6 @@ export async function trackProductClick(productId: string) {
       console.error("Click tracking error:", clickError)
     }
 
-    // Update product click count
     const { error: updateError } = await supabase.rpc("increment_click_count", {
       product_id: productId,
     })

@@ -60,6 +60,11 @@ export default async function AdminDashboard() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link href="/admin/categories">
+                Manage Categories
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href="/">
                 <Eye className="h-4 w-4 mr-2" />
                 View Store
@@ -193,7 +198,7 @@ export default async function AdminDashboard() {
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="sm" className="flex-1 bg-transparent">
-                      <Link href={`/product/${product.id}`} target="_blank">
+                      <Link href={`/product/${product.slug || product.id}`} target="_blank">
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Link>
