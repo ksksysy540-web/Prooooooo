@@ -11,7 +11,15 @@ import { Loader2, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createProduct, updateProduct } from "@/lib/actions"
-import ImageUpload from "./image-upload"
+import MultiImageUpload from "./multi-image-upload"
+
+const defaultCategories: Array<{ id: string; name: string; slug: string }> = [
+  { id: "all", name: "All", slug: "all" },
+  { id: "electronics", name: "Electronics", slug: "electronics" },
+  { id: "fashion", name: "Fashion", slug: "fashion" },
+  { id: "beauty", name: "Beauty", slug: "beauty" },
+  { id: "home-garden", name: "Home & Garden", slug: "home-garden" },
+]
 
 const defaultCategories: Array<{ id: string; name: string; slug: string }> = [
   { id: "all", name: "All", slug: "all" },
@@ -226,7 +234,7 @@ export default function ProductForm({ product }: ProductFormProps) {
             />
           </div>
 
-          <ImageUpload currentImageUrl={product?.image_url} onImageChange={setImageUrl} />
+          <MultiImageUpload initialUrls={product?.image_url ? [product.image_url] : []} />
 
           <div className="flex gap-4">
             <SubmitButton isEditing={isEditing} />
