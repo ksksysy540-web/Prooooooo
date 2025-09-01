@@ -13,14 +13,6 @@ import { useEffect, useState } from "react"
 import { createProduct, updateProduct } from "@/lib/actions"
 import ImageUpload from "./image-upload"
 
-const defaultCategories: Array<{ id: string; name: string; slug: string }> = [
-  { id: "all", name: "All", slug: "all" },
-  { id: "electronics", name: "Electronics", slug: "electronics" },
-  { id: "fashion", name: "Fashion", slug: "fashion" },
-  { id: "beauty", name: "Beauty", slug: "beauty" },
-  { id: "home-garden", name: "Home & Garden", slug: "home-garden" },
-]
-
 interface Product {
   id: string
   product_name: string
@@ -30,7 +22,6 @@ interface Product {
   badge?: string
   affiliate_link: string
   image_url: string
-  category?: string
 }
 
 interface ProductFormProps {
@@ -64,32 +55,12 @@ export default function ProductForm({ product }: ProductFormProps) {
   const [state, formAction] = useActionState(action, null)
   const [imageUrl, setImageUrl] = useState(product?.image_url || "")
   const [selectedBadge, setSelectedBadge] = useState(product?.badge || "No Badge")
-  const [selectedCategory, setSelectedCategory] = useState(product?.category || "")
-  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>(defaultCategories)
 
   useEffect(() => {
     if (state?.success) {
       router.push("/admin")
     }
   }, [state, router])
-
-  useEffect(() => {
-    let ignore = false
-    async function loadCategories() {
-      try {
-        const res = await fetch("/api/categories", { cache: "no-store" })
-        if (!res.ok) return
-        const data = await res.json()
-        if (!ignore && Array.isArray(data.categories) && data.categories.length > 0) {
-          setCategories(data.categories)
-        }
-      } catch {}
-    }
-    loadCategories()
-    return () => {
-      ignore = true
-    }
-  }, [])
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -101,7 +72,8 @@ export default function ProductForm({ product }: ProductFormProps) {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
-          {isEditing && <input type="hidden" name="id" value={product!.id} />}
+          {isEditing && <input type="hidden" name="id" value={product.id} />}
+
           {state?.error && (
             <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded">
               {state.error}
@@ -180,24 +152,6 @@ export default function ProductForm({ product }: ProductFormProps) {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="category" className="block text-sm font-medium">
-                Category
-              </label>
-              <Select name="category" value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -239,4 +193,3 @@ export default function ProductForm({ product }: ProductFormProps) {
     </Card>
   )
 }
-
